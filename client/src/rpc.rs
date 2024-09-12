@@ -55,6 +55,13 @@ impl<DB: Database> Rpc<DB> {
 #[rpc(server, namespace = "eth")]
 trait EthRpc {
     #[method(name = "getBalance")]
+    async fn fee_history(
+        &self,
+        block_count: U64,
+        newest_block: BlockTag,
+        reward_percentiles: Option<Vec<f64>>,
+    ) -> Result<FeeHistory, Error>;
+
     async fn get_balance(&self, address: Address, block: BlockTag) -> Result<U256, Error>;
     #[method(name = "getTransactionCount")]
     async fn get_transaction_count(&self, address: Address, block: BlockTag) -> Result<U64, Error>;
@@ -101,15 +108,15 @@ trait EthRpc {
     ) -> Result<Option<Transaction>, Error>;
     #[method(name = "getLogs")]
     async fn get_logs(&self, filter: Filter) -> Result<Vec<Log>, Error>;
-    #[method(name = "getFilterChanges")]
+    #[method(name = "getFilterChanges", aliases = ["getFilterChanges"])]
     async fn get_filter_changes(&self, filter_id: U256) -> Result<Vec<Log>, Error>;
-    #[method(name = "uninstallFilter")]
+    #[method(name = "uninstallFilter", aliases = ["uninstallFilter"])]
     async fn uninstall_filter(&self, filter_id: U256) -> Result<bool, Error>;
-    #[method(name = "getNewFilter")]
+    #[method(name = "newFilter", aliases = ["newFilter"])]
     async fn get_new_filter(&self, filter: Filter) -> Result<U256, Error>;
-    #[method(name = "getNewBlockFilter")]
+    #[method(name = "newBlockFilter", aliases = ["newBlockFilter"])]
     async fn get_new_block_filter(&self) -> Result<U256, Error>;
-    #[method(name = "getNewPendingTransactionFilter")]
+    #[method(name = "newPendingTransactionFilter", aliases = ["newPendingTransactionFilter"])]
     async fn get_new_pending_transaction_filter(&self) -> Result<U256, Error>;
     #[method(name = "getStorageAt")]
     async fn get_storage_at(
@@ -118,9 +125,9 @@ trait EthRpc {
         slot: B256,
         block: BlockTag,
     ) -> Result<U256, Error>;
-    #[method(name = "coinbase")]
+    #[method(name = "coinbase", aliases = ["coinbase"])]
     async fn coinbase(&self) -> Result<Address, Error>;
-    #[method(name = "syncing")]
+    #[method(name = "syncing", aliases = ["syncing"])]
     async fn syncing(&self) -> Result<SyncStatus, Error>;
 }
 
@@ -139,6 +146,15 @@ struct RpcInner<DB: Database> {
 #[async_trait]
 impl<DB: Database> EthRpcServer for RpcInner<DB> {
     async fn get_balance(&self, address: Address, block: BlockTag) -> Result<U256, Error> {
+        convert_err(self.node.get_balance(address, block).await)
+    }
+
+    async fn fee_history(
+        &self,
+        block_count: U64,
+        newest_block: BlockTag,
+        reward_percentiles: Option<Vec<f64>>,
+    ) -> Result<FeeHistory, Error> {
         convert_err(self.node.get_balance(address, block).await)
     }
 
