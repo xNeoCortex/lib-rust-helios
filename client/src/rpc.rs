@@ -76,6 +76,13 @@ trait EthRpc {
     async fn max_priority_fee_per_gas(&self) -> Result<U256, Error>;
     #[method(name = "blockNumber")]
     async fn block_number(&self) -> Result<U64, Error>;
+    #[method(name = "feeHistory")]
+    async fn fee_history(
+        &self,
+        block_count: U64,
+        newest_block: BlockTag,
+        reward_percentiles: Vec<f64>,
+    ) -> Result<FeeHistory, Error>;
     #[method(name = "getBlockByNumber")]
     async fn get_block_by_number(
         &self,
@@ -121,7 +128,7 @@ trait EthRpc {
     #[method(name = "coinbase")]
     async fn coinbase(&self) -> Result<Address, Error>;
     #[method(name = "syncing")]
-    async fn syncing(&self) -> Result<SyncStatus, Error>;
+    async fn sync(&self) -> Result<SyncStatus, Error>;
 }
 
 #[rpc(client, server, namespace = "net")]
@@ -183,6 +190,19 @@ impl<DB: Database> EthRpcServer for RpcInner<DB> {
 
     async fn max_priority_fee_per_gas(&self) -> Result<U256, Error> {
         convert_err(self.node.get_priority_fee())
+    }
+
+    async fn fee_history(
+        &self,
+        block_count: U64,
+        newest_block: BlockTag,
+        reward_percentiles: Vec<f64>,
+    ) -> Result<FeeHistory, Error> {
+        convert_err(
+            self.node
+                .get_fee_history(block_count.to(), newest_block, reward_percentiles)
+                .await,
+        )
     }
 
     async fn block_number(&self) -> Result<U64, Error> {
