@@ -10,6 +10,8 @@ criterion_group! {
     config = Criterion::default().sample_size(10);
     targets =
         bench_full_sync,
+        bench_full_sync_with_checkpoint,
+        bench_full_sync,
         bench_full_sync_with_call,
         bench_full_sync_checkpoint_fallback,
         bench_full_sync_with_call_checkpoint_fallback,
@@ -17,6 +19,23 @@ criterion_group! {
 
 /// Benchmark full client sync.
 pub fn bench_full_sync(c: &mut Criterion) {
+    // Externally, let's fetch the latest checkpoint from our fallback service so as not to benchmark the checkpoint fetch.
+    let checkpoint = harness::await_future(harness::fetch_mainnet_checkpoint()).unwrap();
+
+    // On client construction, it will sync to the latest checkpoint using our fetched checkpoint.
+    c.bench_function("full_sync", |b| {
+        b.to_async(harness::construct_runtime()).iter(|| async {
+            let _client = std::sync::Arc::new(
+                harness::construct_mainnet_client_with_checkpoint(checkpoint)
+                    .await
+                    .unwrap(),
+            );
+        })
+    });
+}
+
+/// Benchmark full client sync.
+pub fn bench_full_sync_with_checkpoint(c: &mut Criterion) {
     // Externally, let's fetch the latest checkpoint from our fallback service so as not to benchmark the checkpoint fetch.
     let checkpoint = harness::await_future(harness::fetch_mainnet_checkpoint()).unwrap();
 
